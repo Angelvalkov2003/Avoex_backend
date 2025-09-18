@@ -1,15 +1,62 @@
-export function getAllNotes(req, res) {
-  res.status(200).send("data fetched");
+import Note from "../models/Note.js";
+
+export async function getAllNotes(req, res) {
+  try {
+    const notes = await Note.find();
+    res.status(200).json(notes);
+  } catch (error) {
+    res.status(500).json({ message: "internal server error" });
+  }
 }
 
-export function createNote(req, res) {
-  res.status(201).json({ message: "create the notes" });
+export async function getNoteById(req, res) {
+  try {
+    const note = await Note.findById(req.params.id);
+    res.status(200).json(note);
+  } catch (error) {
+    res.status(500).json({ message: "internal server error" });
+  }
 }
 
-export function updateNote(req, res) {
-  res.status(200).json({ message: "update the notes" });
+export async function createNote(req, res) {
+  try {
+    const { title, content, email, phone } = req.body;
+    const newNote = new Note({ title, content, email, phone });
+    const savedNote = await newNote.save();
+    res.status(201).json(savedNote);
+  } catch (error) {
+    res.status(500).json({ message: "failed!" });
+  }
 }
 
-export function deleteNote(req, res) {
-  res.status(200).json({ message: "delete the notes" });
+export async function updateNote(req, res) {
+  try {
+    const { title, content, email, phone } = req.body;
+    const updatedNote = await Note.findByIdAndUpdate(
+      req.params.id,
+      {
+        title,
+        content,
+        email,
+        phone,
+      },
+      {
+        new: true,
+      }
+    );
+
+    res.status(200).json(updatedNote);
+  } catch (error) {
+    res.status(500).json({ message: "failed!" });
+  }
+}
+
+export async function deleteNote(req, res) {
+  try {
+    const deletedNote = await Note.findByIdAndDelete(req.params.id);
+
+    res.status(200).json(deletedNote);
+  } catch (error) {
+    res.status(500).json({ message: "failed!" });
+  }
 }
