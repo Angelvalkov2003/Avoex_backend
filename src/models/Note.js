@@ -30,6 +30,10 @@ const noteSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    BGtime: {
+      type: String,
+      required: true,
+    },
   },
   { timestamps: true }
 );

@@ -29,6 +29,7 @@ export async function createNote(req, res) {
       meetingDate,
       meetingTime,
       meetingTimezone,
+      BGtime,
     } = req.body;
     const newNote = new Note({
       title,
@@ -38,6 +39,7 @@ export async function createNote(req, res) {
       meetingDate,
       meetingTime,
       meetingTimezone,
+      BGtime,
     });
     const savedNote = await newNote.save();
     res.status(201).json(savedNote);
@@ -56,6 +58,7 @@ export async function updateNote(req, res) {
       meetingDate,
       meetingTime,
       meetingTimezone,
+      BGtime,
     } = req.body;
     const updatedNote = await Note.findByIdAndUpdate(
       req.params.id,
@@ -67,6 +70,7 @@ export async function updateNote(req, res) {
         meetingDate,
         meetingTime,
         meetingTimezone,
+        BGtime,
       },
       {
         new: true,
