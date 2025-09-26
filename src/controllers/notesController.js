@@ -21,8 +21,24 @@ export async function getNoteById(req, res) {
 
 export async function createNote(req, res) {
   try {
-    const { title, content, email, phone, meetingDateTime } = req.body;
-    const newNote = new Note({ title, content, email, phone, meetingDateTime });
+    const {
+      title,
+      content,
+      email,
+      phone,
+      meetingDate,
+      meetingTime,
+      meetingTimezone,
+    } = req.body;
+    const newNote = new Note({
+      title,
+      content,
+      email,
+      phone,
+      meetingDate,
+      meetingTime,
+      meetingTimezone,
+    });
     const savedNote = await newNote.save();
     res.status(201).json(savedNote);
   } catch (error) {
@@ -32,7 +48,15 @@ export async function createNote(req, res) {
 
 export async function updateNote(req, res) {
   try {
-    const { title, content, email, phone, meetingDateTime } = req.body;
+    const {
+      title,
+      content,
+      email,
+      phone,
+      meetingDate,
+      meetingTime,
+      meetingTimezone,
+    } = req.body;
     const updatedNote = await Note.findByIdAndUpdate(
       req.params.id,
       {
@@ -40,7 +64,9 @@ export async function updateNote(req, res) {
         content,
         email,
         phone,
-        meetingDateTime,
+        meetingDate,
+        meetingTime,
+        meetingTimezone,
       },
       {
         new: true,

@@ -18,8 +18,16 @@ const noteSchema = new mongoose.Schema(
       type: String,
       required: false,
     },
-    meetingDateTime: {
-      type: Date,
+    meetingDate: {
+      type: String,
+      required: true,
+    },
+    meetingTime: {
+      type: String,
+      required: true,
+    },
+    meetingTimezone: {
+      type: String,
       required: true,
     },
   },
