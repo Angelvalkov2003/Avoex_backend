@@ -14,19 +14,15 @@ const noteSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    phone: {
-      type: String,
-      required: false,
-    },
-    meetingDate: {
+    ClientsDate: {
       type: String,
       required: true,
     },
-    meetingTime: {
+    ClientsTimeZone: {
       type: String,
       required: true,
     },
-    meetingTimezone: {
+    BGdate: {
       type: String,
       required: true,
     },
