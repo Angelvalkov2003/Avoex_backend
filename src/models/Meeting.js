@@ -1,8 +1,8 @@
 import mongoose from "mongoose";
 
-const noteSchema = new mongoose.Schema(
+const meetingSchema = new mongoose.Schema(
   {
-    title: {
+    client: {
       type: String,
       required: true,
     },
@@ -34,6 +34,9 @@ const noteSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-const Note = mongoose.model("Note", noteSchema);
+// Add unique compound index for BGdate and BGtime to prevent duplicate reservations
+meetingSchema.index({ BGdate: 1, BGtime: 1 }, { unique: true });
 
-export default Note;
+const Meeting = mongoose.model("Meeting", meetingSchema);
+
+export default Meeting;
