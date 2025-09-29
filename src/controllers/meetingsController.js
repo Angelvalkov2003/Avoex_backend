@@ -10,6 +10,30 @@ export async function getAllMeetings(_, res) {
   }
 }
 
+export async function getBookedSlotsByDate(req, res) {
+  try {
+    const { date } = req.params;
+
+    if (!date) {
+      return res.status(400).json({ message: "Date parameter is required" });
+    }
+
+    // Find all meetings for the specified date
+    const meetings = await Meeting.find({ BGdate: date }).select("BGtime");
+
+    // Extract only the time slots
+    const bookedSlots = meetings.map((meeting) => meeting.BGtime);
+
+    res.status(200).json({
+      date: date,
+      bookedSlots: bookedSlots,
+    });
+  } catch (error) {
+    console.error("Error fetching booked slots:", error);
+    res.status(500).json({ message: "Failed to fetch booked slots" });
+  }
+}
+
 export async function getMeetingById(req, res) {
   try {
     const meeting = await Meeting.findById(req.params.id);
