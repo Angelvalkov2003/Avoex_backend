@@ -1,4 +1,5 @@
 import Meeting from "../models/Meeting.js";
+import { sendConfirmationEmail } from "../services/emailService.js";
 
 export async function getAllMeetings(_, res) {
   try {
@@ -152,6 +153,27 @@ export async function createMeeting(req, res) {
       BGtime,
     });
     const savedMeeting = await newMeeting.save();
+
+    // Send confirmation email to client
+    try {
+      const emailData = {
+        client: sanitizedClient,
+        email: sanitizedEmail,
+        content: sanitizedContent,
+        selectedDate: BGdate,
+        selectedTime: BGtime,
+        clientsTimeZone: ClientsTimeZone,
+      };
+
+      // Send confirmation email only
+      sendConfirmationEmail(emailData).catch((error) => {
+        console.error("Error sending email:", error);
+        // Don't fail the request if email sending fails
+      });
+    } catch (emailError) {
+      console.error("Error preparing email data:", emailError);
+      // Don't fail the request if email preparation fails
+    }
 
     // Set security headers
     res.set({
