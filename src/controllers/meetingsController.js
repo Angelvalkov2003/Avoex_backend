@@ -1,5 +1,10 @@
 import Meeting from "../models/Meeting.js";
 import { sendConfirmationEmail } from "../services/emailService.js";
+import {
+  convertClientTimeToBulgarian,
+  convertFromBulgarianTime,
+  isValidTimezone,
+} from "../utils/timezoneUtils.js";
 
 export async function getAllMeetings(_, res) {
   try {
@@ -24,6 +29,7 @@ export async function getAllMeetings(_, res) {
 export async function getBookedSlotsByDate(req, res) {
   try {
     const { date } = req.params;
+    const { timezone } = req.query;
 
     if (!date) {
       return res.status(400).json({ message: "Date parameter is required" });
@@ -37,11 +43,69 @@ export async function getBookedSlotsByDate(req, res) {
         .json({ message: "Invalid date format. Use YYYY-MM-DD" });
     }
 
-    // Find all meetings for the specified date
-    const meetings = await Meeting.find({ BGdate: date }).select("BGtime");
+    // Validate timezone if provided
+    if (timezone && !isValidTimezone(timezone)) {
+      return res.status(400).json({ message: "Invalid timezone format" });
+    }
 
-    // Extract only the time slots
-    const bookedSlots = meetings.map((meeting) => meeting.BGtime);
+    // If timezone is provided, we need to check for meetings that would be
+    // in the client's timezone on the specified date
+    let searchDate = date;
+    let bookedSlots = [];
+
+    if (timezone) {
+      // Convert the client's date to Bulgarian date to find the correct day
+      // We'll check a range of dates to cover potential timezone differences
+      const clientDate = date;
+
+      // Get the start and end of the day in the client's timezone
+      const startOfDay = new Date(`${clientDate}T00:00:00`);
+      const endOfDay = new Date(`${clientDate}T23:59:59`);
+
+      // Convert these to Bulgarian timezone to find the corresponding dates
+      const bgStart = convertClientTimeToBulgarian(
+        clientDate,
+        "00:00",
+        timezone
+      );
+      const bgEnd = convertClientTimeToBulgarian(clientDate, "23:59", timezone);
+
+      // Find meetings that fall within this date range in Bulgarian time
+      const meetings = await Meeting.find({
+        BGdate: { $gte: bgStart.bgDate, $lte: bgEnd.bgDate },
+      }).select("BGdate BGtime");
+
+      // Filter meetings that actually fall within the client's day
+      const relevantMeetings = meetings.filter((meeting) => {
+        const meetingDateTime = new Date(`${meeting.BGdate}T${meeting.BGtime}`);
+
+        // Convert Bulgarian time back to client timezone to check if it's within the client's day
+        const clientTime = convertFromBulgarianTime(
+          meeting.BGdate,
+          meeting.BGtime,
+          timezone
+        );
+        const clientDateTime = new Date(
+          `${clientTime.clientDate}T${clientTime.clientTime}`
+        );
+
+        return clientDateTime >= startOfDay && clientDateTime <= endOfDay;
+      });
+
+      // Convert the booked slots back to client's timezone
+      bookedSlots = relevantMeetings.map((meeting) => {
+        const clientTime = convertFromBulgarianTime(
+          meeting.BGdate,
+          meeting.BGtime,
+          timezone
+        );
+        return clientTime.clientTime;
+      });
+    } else {
+      // Original behavior - find meetings for the specified Bulgarian date
+      const meetings = await Meeting.find({ BGdate: date }).select("BGtime");
+      bookedSlots = meetings.map((meeting) => meeting.BGtime);
+    }
 
     // Set security headers
     res.set({
@@ -54,6 +118,7 @@ export async function getBookedSlotsByDate(req, res) {
 
     res.status(200).json({
       date: date,
+      timezone: timezone || "Europe/Sofia",
       bookedSlots: bookedSlots,
     });
   } catch (error) {
