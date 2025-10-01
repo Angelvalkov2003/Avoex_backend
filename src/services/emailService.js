@@ -47,9 +47,75 @@ const sendConfirmationEmail = async (meetingData) => {
       clientsTimeZone,
     } = meetingData;
 
-    // Format the date and time for display
+    // Convert Bulgarian time to client's timezone for display
+    const convertToClientTimezone = (bgDate, bgTime, clientTimezone) => {
+      // Create a date object from Bulgarian time
+      const [year, month, day] = bgDate.split("-").map(Number);
+      const [hour, minute] = bgTime.split(":").map(Number);
+
+      // Create date in Sofia timezone
+      const sofiaDate = new Date(Date.UTC(year, month - 1, day, hour, minute));
+
+      // Get Sofia timezone offset
+      const sofiaOffset = new Intl.DateTimeFormat("en", {
+        timeZone: "Europe/Sofia",
+        timeZoneName: "longOffset",
+      }).formatToParts(sofiaDate);
+
+      const offsetString =
+        sofiaOffset.find((p) => p.type === "timeZoneName")?.value || "+02:00";
+      const offsetMatch = offsetString.match(/([+-])(\d{2}):(\d{2})/);
+
+      if (!offsetMatch) {
+        console.error("Could not parse Sofia timezone offset");
+        return { clientDate: bgDate, clientTime: bgTime };
+      }
+
+      const [, sign, offsetHours, offsetMinutes] = offsetMatch;
+      const totalOffsetMs =
+        (parseInt(offsetHours) * 60 + parseInt(offsetMinutes)) * 60 * 1000;
+      const sofiaOffsetMs = sign === "+" ? totalOffsetMs : -totalOffsetMs;
+
+      // Adjust to UTC
+      const adjustedDate = new Date(sofiaDate.getTime() - sofiaOffsetMs);
+
+      // Convert to client's timezone
+      const clientTime = new Intl.DateTimeFormat("en-CA", {
+        timeZone: clientTimezone,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      }).formatToParts(adjustedDate);
+
+      const resultYear = clientTime.find((part) => part.type === "year").value;
+      const resultMonth = clientTime.find(
+        (part) => part.type === "month"
+      ).value;
+      const resultDay = clientTime.find((part) => part.type === "day").value;
+      const resultHour = clientTime.find((part) => part.type === "hour").value;
+      const resultMinute = clientTime.find(
+        (part) => part.type === "minute"
+      ).value;
+
+      return {
+        clientDate: `${resultYear}-${resultMonth}-${resultDay}`,
+        clientTime: `${resultHour}:${resultMinute}`,
+      };
+    };
+
+    // Convert Bulgarian time to client timezone
+    const { clientDate, clientTime } = convertToClientTimezone(
+      selectedDate,
+      selectedTime,
+      clientsTimeZone
+    );
+
+    // Format the date and time for display in client's timezone
     const meetingDate = new Date(
-      `${selectedDate}T${selectedTime}`
+      `${clientDate}T${clientTime}`
     ).toLocaleDateString("en-US", {
       weekday: "long",
       year: "numeric",
@@ -57,13 +123,23 @@ const sendConfirmationEmail = async (meetingData) => {
       day: "numeric",
     });
 
-    const meetingTime = new Date(
-      `2000-01-01T${selectedTime}`
-    ).toLocaleTimeString("en-US", {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    });
+    // Check if client is from US for 12-hour format
+    const isUSClient =
+      clientsTimeZone.includes("America/") ||
+      clientsTimeZone.includes("US/") ||
+      clientsTimeZone.includes("Pacific/") ||
+      clientsTimeZone.includes("Mountain/") ||
+      clientsTimeZone.includes("Central/") ||
+      clientsTimeZone.includes("Eastern/");
+
+    const meetingTime = new Date(`2000-01-01T${clientTime}`).toLocaleTimeString(
+      "en-US",
+      {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: isUSClient,
+      }
+    );
 
     const mailOptions = {
       from: process.env.EMAIL_FROM || process.env.EMAIL_USER,

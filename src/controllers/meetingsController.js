@@ -128,6 +128,21 @@ export async function createMeeting(req, res) {
       });
     }
 
+    // Validate that the date/time is not in the past
+    const now = new Date();
+    const meetingDateTime = new Date(`${BGdate}T${BGtime}`);
+
+    // Add 2 hours buffer to prevent booking too close to current time
+    const bufferTime = new Date(now.getTime() + 2 * 60 * 60 * 1000);
+
+    if (meetingDateTime < bufferTime) {
+      return res.status(400).json({
+        message:
+          "Cannot book consultations in the past or within 2 hours of current time",
+        code: "PAST_DATETIME",
+      });
+    }
+
     // Sanitize input
     const sanitizedClient = client.trim().substring(0, 100);
     const sanitizedContent = content.trim().substring(0, 1000);
